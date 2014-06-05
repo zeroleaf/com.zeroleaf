@@ -18,7 +18,7 @@ while ((readCount = bis.read(buffer)) != -1) {
     bos.write(buffer, 0, readCount);
     downloadBar.tick(readCount);
 }
-downloadBar.showResult(null);
+downloadBar.keepResult(null);
 ----
 
 结果如下:
@@ -33,11 +33,11 @@ downloadBar.showResult(null);
 可以通过 +ProgressBarImpl+ 的静态工厂方法来方便的创建 +ProgressBar+
 
 * +newTaskProgressBar(long)+: 创建一个指定大小的任务型进度条. +
-格式为: _*:current :elapsed [:bar] :percent%*_, 显示示例: +
+格式为: *:current :elapsed [:bar] :percent%*, 显示示例: +
 *30 00:21 [========================----------------------------------------------]  34.48%*
 
 * +newDownloadProgressBar(long)+: 创建一个指定大小的下载型进度条. +
-格式为: _*:current :dlspeed :elapsed [:bar] :percent%*_, 结果示例如示例结果所示.
+格式为: *:current :dlspeed :elapsed [:bar] :percent%*, 结果示例如示例结果所示.
 
 * +newInstance(String, long)+: 创建指定格式指定大小的进度条, 参数 String 为进度条的格式.
 
