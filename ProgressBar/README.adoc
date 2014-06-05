@@ -1,0 +1,79 @@
+= Progress Bar
+
+基于 Java 的简易命令行进度条实现.
+
+== 示例
+
+一个典型的使用示例:
+
+[source, java]
+---- 
+ProgressBar downloadBar = ProgressBarImpl.newDownloadProgressBar(fileSize);
+downloadBar.start();
+byte[] buffer = new byte[1024];
+int readCount;
+while ((readCount = bis.read(buffer)) != -1) {
+    bos.write(buffer, 0, readCount);
+    downloadBar.tick(readCount);
+}
+downloadBar.showResult(null);
+----
+
+结果如下:
+
+----
+ 430080   29 KB/s 00:21 [=============================-----------------------------------------]  42.00%
+----
+
+== 使用说明
+
+=== 创建
+可以通过 +ProgressBarImpl+ 的静态工厂方法来方便的创建 +ProgressBar+
+
+* +newTaskProgressBar(long)+: 创建一个指定大小的任务型进度条. +
+格式为: _:current :elapsed [:bar] :percent%_, 显示示例: +
+*30 00:21 [========================----------------------------------------------]  34.48%*
+
+* +newDownloadProgressBar(long)+: 创建一个指定大小的下载型进度条. +
+格式为: _:current :dlspeed :elapsed [:bar] :percent%_, 结果示例如示例结果所示.
+
+* +newInstance(String, long)+: 创建指定格式指定大小的进度条, 参数 String 为进度条的格式.
+
+* +newInstance(String, Config)+: 创建指定格式, 指定配置的进度条.
+** +String+ 参数为进度条的格式, 可用的 *Token*有:
+*** +:bar+: 显示一个进度条
+*** +:current+: 当前 step
+*** +:dlspeed+: 下载速度
+*** +:elapsed+: 耗时
+*** +:eta+: 预计结束时间
+*** +:percent+: 已完成百分比
+*** +:total+: 总的 step
+** +Config+ 参数是对进度条进行详细的配置, 其是基于 *Builder* 模式的实现, 可用的配置有:
+*** +stream()+: 设置输出流, 默认的为 +System.out+.
+*** +totalStep()+: 设置总的 step, 默认为 100.
+*** +barWidth()+: 设置进度条的宽度, 默认为 70 个字符.
+*** +complateChar()+: 设置已完成的字符表示, 默认的为 *=*.
+*** +incompleteChar()+: 设置未完成的字符表示, 默认的为 *-*.
+*** +updateInterval()+: 设置更新间隔, 即最小的更新时间, 只有当前后两次的时间间隔大于该值
+才会更新进度条, 该值越大更新的频率越慢. 
+单位为 千分之一 秒, 默认值为 1000, 即 1 秒更新一次.
++
+Config 的实例化示例: +
++Config config = new Config.Builder().totalStep(100).barWidth(50).build();+
+
+[NOTE]
+对于 +DownloadProgressBar+, +totalStep+ 应为下载的文件的大小, 单位为字节.
++tick()+ 中的参数为此次接受到的*字节*数.
+
+=== 启用
+实例化进度条之后, 需要显式的调用 +start()+ 方法来启用进度条.
+
+=== 显示
+然后通过调用 +tick()+ 方法即可显示进度条.
+
+=== 保留结果
+默认的, 当进度条完成后, 其显示的结果会被控制台之后打印的给覆盖掉, 所以如果需要保留结果,
+可以通过调用 +keepResult(String format)+ 来实现. 参数 +format+ 为显示的格式, 
+如果为 +null+ 或者 空字符串(+""+), 则使用默认的 format, 即实例化时所用的 format.
+
+
