@@ -39,14 +39,18 @@ public class ProgressBarImpl implements ProgressBar {
         renderings.add(new DlSpeedRendering());
     }
 
-    public ProgressBarImpl(final String format, final Config config) {
+    private ProgressBarImpl(final String format, final Config config) {
         this.format   = format;
         this.config   = config;
         this.progress = new Progress(config.getTotalStep(),
                                      config.getUpdateInterval());
     }
 
-    private static ProgressBarImpl newInstance(String format, long totalStep) {
+    public static ProgressBarImpl newInstance(String format, Config config) {
+        return new ProgressBarImpl(format, config);
+    }
+
+    public static ProgressBarImpl newInstance(String format, long totalStep) {
         Config config = new Config.Builder().totalStep(totalStep).build();
         return new ProgressBarImpl(format, config);
     }
@@ -55,22 +59,14 @@ public class ProgressBarImpl implements ProgressBar {
         ":current :elapsed [:bar] :percent%";
 
     public static ProgressBarImpl newTaskProgressBar(long totalStep) {
-        return newTaskProgressBar(DEFAULT_TASK_FORMAT, totalStep);
-    }
-
-    public static ProgressBarImpl newTaskProgressBar(String format, long totalStep) {
-        return newInstance(format, totalStep);
+        return newInstance(DEFAULT_TASK_FORMAT, totalStep);
     }
 
     private static final String DEFAULT_DOWNLOAD_FORMAT =
         ":current :dlspeed :elapsed [:bar] :percent%";
 
     public static ProgressBarImpl newDownloadProgressBar(long totalStep) {
-        return newDownloadProgressBar(DEFAULT_DOWNLOAD_FORMAT, totalStep);
-    }
-
-    public static ProgressBarImpl newDownloadProgressBar(String format, long totalStep) {
-        return newInstance(format, totalStep);
+        return newInstance(DEFAULT_DOWNLOAD_FORMAT, totalStep);
     }
 
 
@@ -117,7 +113,7 @@ public class ProgressBarImpl implements ProgressBar {
     }
 
     @Override
-    public void showResult(String rf) {
+    public void keepResult(String rf) {
         if (rf == null || rf.isEmpty()) {
             rf = this.format;
         }

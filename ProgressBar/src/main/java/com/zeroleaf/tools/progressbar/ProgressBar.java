@@ -34,5 +34,5 @@ public interface ProgressBar {
      *
      * @param rf result format. Null or empty to use default format.
      */
-    void showResult(String rf);
+    void keepResult(String rf);
 }
