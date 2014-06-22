@@ -52,8 +52,9 @@ class SearchEngine implements Query {
     @Override
     def query(String keyword) {
         keyword = keyword.trim()
-        if (!keyword)
-            return 
+        if (!keyword) {
+            return
+        }
         def result = sqlite.getWord(keyword)
         if (result) {
             view.render(result)
@@ -80,9 +81,6 @@ class YouDao implements Query {
 
     Document page
 
-    private static final String[] EXTRACT_PROPERTIES =
-            ["pronounces", "meanings", "webTrans", "wordGroups"]
-
     /**
      * 查询, 并返回查询到的单词实例.
      *
@@ -94,18 +92,17 @@ class YouDao implements Query {
         def queryUrl = getRealQueryUrl(keyword)
         page = Jsoup.connect(queryUrl).get()
 
-        def args = [:]
-        EXTRACT_PROPERTIES.each {
-            String methodName = "extract" << it.capitalize()
-            args.put(it, "$methodName"())
-        }
-        args.put("identify", keyword)
+        def args = ["identify": keyword]
+        args.put("pronounces", extractPronounces())
+        args.put("meanings", extractMeanings())
+        args.put("webTrans", extractWebTrans())
+        args.put("wordGroups", extractWordGroups())
 
         return args as Word
     }
 
-    def extractPronounces() {
-        page.select("#phrsListTab span.pronounce").collect { it.text() }.
+    String extractPronounces() {
+        return page.select("#phrsListTab span.pronounce").collect { it.text() }.
                 findAll {
                     String trimStr = it.trim()
                     return trimStr && trimStr != "英" && trimStr != "美"
@@ -119,16 +116,16 @@ class YouDao implements Query {
     static final String CN_SELECTOR = "#phrsListTab li"
     static final String ENG_SELECTOR = "#phrsListTab ul > p"
 
-    def extractMeanings() {
+    String extractMeanings() {
         def meanings = extractWordMeanings(CN_SELECTOR)
         return meanings ? meanings : extractWordMeanings(ENG_SELECTOR)
     }
 
-    def extractWordMeanings(String selector) {
-        page.select(selector).collect { it.text() }.join(Word.SEPARATOR)
+    String extractWordMeanings(String selector) {
+        return page.select(selector).collect { it.text() }.join(Word.SEPARATOR)
     }
 
-    def extractWebTrans() {
+    String extractWebTrans() {
         def webTrans = page.select("#tWebTrans > div").collect {
             it.select("div span").text().trim()
         }
@@ -138,8 +135,8 @@ class YouDao implements Query {
         return webTrans.join(Word.SEPARATOR)
     }
 
-    def extractWordGroups() {
-        page.select("#wordGroup p.wordGroup").collect { it.text() }.
+    String extractWordGroups() {
+        return page.select("#wordGroup p.wordGroup").collect { it.text() }.
                 join(Word.SEPARATOR)
     }
 }
@@ -219,12 +216,12 @@ class DictView extends AbstractView {
         renderCount == 0 ? println() : ""
     }
 
-    static final Pattern pronounce = ~/(.)\s+\[(.*?)\]/
+    static final Pattern pPronounce = ~/(.)\s+\[(.*?)\]/
 
     def renderPronounces(Word word) {
         if (word.getPronounces()) {
             String str = word.getPronounces().replace(Word.SEPARATOR, "  ")
-            Matcher m = pronounce.matcher(str)
+            Matcher m = pPronounce.matcher(str)
             StringBuffer sb = new StringBuffer("  ")
             m.each {
                 String replacement = String.
@@ -239,14 +236,14 @@ class DictView extends AbstractView {
         }
     }
 
-    static final Pattern speech = ~/(.*)\./
+    static final Pattern pSpeech = ~/(.*)\./
 
     def renderMeanings(Word word) {
         if (word.getMeanings()) {
             println cyan("  单词释意")
             word.getMeanings().split(Word.SEPARATOR).each { meaning ->
                 String str = "    * $meaning"
-                speech.matcher(meaning).each {
+                pSpeech.matcher(meaning).each {
                     str = str.replaceFirst(it[1], lyellow(it[1]))
                 }
                 println str
@@ -259,7 +256,7 @@ class DictView extends AbstractView {
         if (word.getWebTrans()) {
             println cyan("  网络释意")
             print "    * "
-            println word.getWebTrans().split(Word.SEPARATOR).join(" | ")
+            println word.getWebTrans().replaceAll(Word.SEPARATOR, " | ")
             return true
         }
     }
@@ -274,7 +271,7 @@ class DictView extends AbstractView {
             for (i in 0..<max) {
                 String str = "    * ${wordGroups[i]}"
                 pWordGroup.matcher(wordGroups[i]).each {
-                    str = str.replaceFirst(it[1], styleStr(ANSI_LCYAN, it[1]))
+                    str = str.replaceFirst(it[1], lcyan(it[1]))
                 }
                 println str
             }
@@ -310,8 +307,12 @@ CREATE TABLE IF NOT EXISTS word (
 )
 '''
 
+    private static final String WORD_INDEX_IDENTIFY = '''
+CREATE UNIQUE INDEX IF NOT EXISTS identify_idx ON word (identify)
+'''
+
     private static final dbSettings = [
-            url     : "jdbc:sqlite:se.db",
+            url     : "jdbc:sqlite:${PathConfig.DB_FILE}",
             driver  : "org.sqlite.JDBC",
             user    : "sa",
             password: ""
@@ -321,11 +322,11 @@ CREATE TABLE IF NOT EXISTS word (
     public Sqlite() {
         sql = Sql.newInstance(dbSettings)
         sql.execute(WORD_CREATE_SQL)
+        sql.execute(WORD_INDEX_IDENTIFY)
     }
 
     private static final String WORD_INSERT_SQL =
             "INSERT INTO word VALUES (?, ?, ?, ?, ?, datetime('now', 'localtime'))"
-
 
     void addWord(Word word) {
         sql.executeInsert(WORD_INSERT_SQL,
@@ -335,20 +336,32 @@ CREATE TABLE IF NOT EXISTS word (
     private static final String WORD_SELECT_SQL =
             "SELECT * FROM word WHERE identify = ?"
 
-
     Word getWord(String identify) {
         Word word = null
         sql.query(WORD_SELECT_SQL, [identify]) {
-            GroovyRowResult rs = it.toRowResult()
-            if (rs.get("identify")) {
+            if (it.next()) {
+                GroovyRowResult rs = it.toRowResult()
                 def args = [:]
                 rs.each { key, value ->
                     args.put(key, value)
                 }
-                args.put("addTime", Timestamp.valueOf(args.get("addTime").toString()))
+                args.put("addTime",
+                         Timestamp.valueOf(args.get("addTime").toString()))
                 word = args as Word
             }
         }
         return word
     }
+}
+
+/* -------------------------- File --------------------------- */
+
+class PathConfig {
+
+    static final String USER_HOME = System.getProperty("user.home")
+    static final String DB_PATH = USER_HOME + "/.secv/"
+    static {
+        new File(DB_PATH).mkdirs()
+    }
+    static final String DB_FILE = DB_PATH + "se.db"
 }
