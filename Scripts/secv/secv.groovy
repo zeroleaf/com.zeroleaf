@@ -1,5 +1,7 @@
 #!/usr/bin/env groovy
 
+// @version 0.0.1
+
 @GrabConfig(systemClassLoader = true)
 @Grab(group = 'org.xerial', module = 'sqlite-jdbc', version = '3.7.2')
 @Grab(group = 'org.jsoup', module = 'jsoup', version = '1.7.3')
@@ -43,7 +45,6 @@ class SearchEngine implements Query {
     Sqlite sqlite = new Sqlite()
 
     View view = new DictView()
-
 
     public static SearchEngine getInstance() {
         return new SearchEngine()
@@ -148,7 +149,9 @@ interface View {
     def render(obj)
 }
 
-abstract class AbstractView implements View {
+class ANSIStyle {
+
+    private ANSIStyle() {}
 
     static final String ANSI_RESET = "\u001B[0m"
     static final String ANSI_BRIGHT = "\u001B[1m"
@@ -168,7 +171,7 @@ abstract class AbstractView implements View {
     static final String ANSI_LYELLOW = "\u001B[93m"
     static final String ANSI_LBLUE = "\u001B[94m"
     static final String ANSI_LMAGENTA = "\u001B[95m"
-    public static final String ANSI_LCYAN = "\u001B[96m"
+    static final String ANSI_LCYAN = "\u001B[96m"
     static final String ANSI_LWHITE = "\u001B[97m"
 
     static String bright(Object obj) { styleStr(ANSI_BRIGHT, obj) }
@@ -196,7 +199,7 @@ abstract class AbstractView implements View {
     }
 }
 
-class DictView extends AbstractView {
+class DictView implements View {
 
     @Override
     def render(word) {
@@ -216,8 +219,10 @@ class DictView extends AbstractView {
         renderCount == 0 ? println() : ""
     }
 
-    static final Pattern pPronounce = ~/(.)\s+\[(.*?)\]/
+    static final Pattern pPronounce = ~/(?:(.)\s+)?\[(.*?)\]/
 
+    // @TODO 如果只有一个发音 没有 英, 美 时, 模式无法匹配从而无法上色
+    // 举例: [dʒun]
     def renderPronounces(Word word) {
         if (word.getPronounces()) {
             String str = word.getPronounces().replace(Word.SEPARATOR, "  ")
@@ -225,10 +230,11 @@ class DictView extends AbstractView {
             StringBuffer sb = new StringBuffer("  ")
             m.each {
                 String replacement = String.
-                        format("%s [%s]", bright(m.group(1)),
-                               yellow(m.group(2)))
+                        format("[%s]", ANSIStyle.yellow(m.group(2)))
+                if (it[1]) {
+                    replacement = ANSIStyle.bright(it[1]) + " " + replacement
+                }
                 m.appendReplacement(sb, replacement)
-
             }
             m.appendTail(sb)
             print sb.toString()
@@ -240,11 +246,11 @@ class DictView extends AbstractView {
 
     def renderMeanings(Word word) {
         if (word.getMeanings()) {
-            println cyan("  单词释意")
+            println ANSIStyle.cyan("  单词释意")
             word.getMeanings().split(Word.SEPARATOR).each { meaning ->
                 String str = "    * $meaning"
                 pSpeech.matcher(meaning).each {
-                    str = str.replaceFirst(it[1], lyellow(it[1]))
+                    str = str.replaceFirst(it[1], ANSIStyle.lyellow(it[1]))
                 }
                 println str
             }
@@ -254,7 +260,7 @@ class DictView extends AbstractView {
 
     def renderWebTrans(Word word) {
         if (word.getWebTrans()) {
-            println cyan("  网络释意")
+            println ANSIStyle.cyan("  网络释意")
             print "    * "
             println word.getWebTrans().replaceAll(Word.SEPARATOR, " | ")
             return true
@@ -266,12 +272,12 @@ class DictView extends AbstractView {
     def renderWordGroups(Word word) {
         if (word.getWordGroups()) {
             def wordGroups = word.getWordGroups().split(Word.SEPARATOR)
-            println cyan("  词组")
+            println ANSIStyle.cyan("  词组")
             int max = Math.min(wordGroups.size(), 5)
             for (i in 0..<max) {
                 String str = "    * ${wordGroups[i]}"
                 pWordGroup.matcher(wordGroups[i]).each {
-                    str = str.replaceFirst(it[1], lcyan(it[1]))
+                    str = str.replaceFirst(it[1], ANSIStyle.lcyan(it[1]))
                 }
                 println str
             }

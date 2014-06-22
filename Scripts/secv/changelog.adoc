@@ -1,0 +1,10 @@
+Version 0.0.1
+
+.Refactor
+* Rename *AbstractView* to *ANSIStyle* and make it a util class.
+* Code clean
+
+.Bug fix
+. Fix the bug when there are only pronounce info it doesn't rendered.
+For example, pronounce info like *[dʒun]* will not be rendered.
+

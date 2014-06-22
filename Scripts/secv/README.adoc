@@ -1,0 +1,8 @@
+= Secv
+
+This program is like https://github.com/felixonmars/ydcv[ydcv] but implements by 
+*Groovy* and add database(sqlite) support to record the word you queried.
+
+
+== TODO
+* Add query http://www.iciba.com/[iciba], which contain much more info than youdao.
