@@ -1,8 +1,11 @@
-Version 0.0.2
+= Change Log
+
+=== Version 0.0.2
+
 .Refactor
 * Make single script file to hierarchy architecture.
 
-Version 0.0.1
+=== Version 0.0.1
 
 .Refactor
 * Rename *AbstractView* to *ANSIStyle* and make it a util class.
