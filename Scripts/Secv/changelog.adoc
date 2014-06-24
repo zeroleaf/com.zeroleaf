@@ -1,9 +1,20 @@
 = Change Log
 
+=== Version 0.0.3
+
+.Refactor
+* Rename *SearchEngine* to *Querys* and make it a util class.
+* Rename *Sqlite.addWord()* to *Sqlite.saveWord()*.
+
+.Functionality
+* When there is not a valid connection to the internet, show user friendly message.
+
+
 === Version 0.0.2
 
 .Refactor
 * Make single script file to hierarchy architecture.
+
 
 === Version 0.0.1
 

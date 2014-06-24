@@ -7,6 +7,11 @@ class ANSIStyle {
 
     private ANSIStyle() {}
 
+    private static final boolean canBeStyled
+    static {
+        canBeStyled = System.console() != null
+    }
+
     static final String ANSI_RESET = "\u001B[0m"
     static final String ANSI_BRIGHT = "\u001B[1m"
 
@@ -32,6 +37,8 @@ class ANSIStyle {
 
     static String red(Object obj) { styleStr(ANSI_RED, obj) }
 
+    static String error(Object obj) { red(obj) }
+
     static String green(Object obj) { styleStr(ANSI_GREEN, obj) }
 
     static String yellow(Object obj) { styleStr(ANSI_YELLOW, obj) }
@@ -49,6 +56,20 @@ class ANSIStyle {
     static String lyellow(Object obj) { styleStr(ANSI_LYELLOW, obj) }
 
     static String styleStr(String style, Object obj) {
+        if (!canBeStyled)
+            return obj.toString()
         return style + obj.toString() + ANSI_RESET
+    }
+
+    static String style(Object obj, String first, String ... others) {
+        return styleStr(resolveStyle(first, others), obj)
+    }
+
+    private static String resolveStyle(String first, String ... others) {
+        if (others.length == 0)
+            return first;
+        for (String style : others)
+            first += style;
+        return first;
     }
 }

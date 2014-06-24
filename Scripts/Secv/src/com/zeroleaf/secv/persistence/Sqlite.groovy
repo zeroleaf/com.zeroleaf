@@ -44,7 +44,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS identify_idx ON word (identify)
     private static final String WORD_INSERT_SQL =
             "INSERT INTO word VALUES (?, ?, ?, ?, ?, datetime('now', 'localtime'))"
 
-    void addWord(Word word) {
+    void saveWord(Word word) {
         sql.executeInsert(WORD_INSERT_SQL,
                           [word.identify, word.pronounces, word.meanings, word.webTrans, word.wordGroups])
     }
